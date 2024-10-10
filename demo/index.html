@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en-GB">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <style>
+    #demo {
+      padding: 25px;
+    }
+  </style>
+</head>
+
+<body>
+  <script type="module" src="../dist/src/ayk-color-picker.js"></script>
+  <div id="demo">
+    <ayk-color-picker id="aaa"></ayk-color-picker>
+  </div>
+
+  <script>
+    window.aaa.addEventListener('update', (e) => console.log(e.detail))
+  </script>
+
+</body>
+
+</html>

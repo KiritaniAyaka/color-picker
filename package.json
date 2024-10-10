@@ -1,0 +1,92 @@
+{
+  "name": "@kiritaniayaka/color-picker",
+  "description": "My Color Picker Web Component.",
+  "license": "MIT",
+  "author": "Kiritani Ayaka",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/src/index.js",
+  "module": "dist/src/index.js",
+  "exports": {
+    ".": "./dist/src/index.js",
+    "./ayk-color-picker.js": "./dist/src/ayk-color-picker.js"
+  },
+  "scripts": {
+    "analyze": "cem analyze --litelement",
+    "start": "tsc && concurrently -k -r \"tsc --watch --preserveWatchOutput\" \"web-dev-server\"",
+    "build": "tsc && npm run analyze -- --exclude dist",
+    "clean": "rimraf dist && rimraf custom-elements.json",
+    "prepublish": "pnpm run clean && pnpm run build",
+    "lint": "eslint --ext .ts,.html . --ignore-path .gitignore && prettier \"**/*.ts\" --check --ignore-path .gitignore",
+    "format": "eslint --ext .ts,.html . --fix --ignore-path .gitignore && prettier \"**/*.ts\" --write --ignore-path .gitignore",
+    "prepare": "husky"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "dist/",
+    "custom-elements.json"
+  ],
+  "dependencies": {
+    "colorsea": "^1.2.2",
+    "lit": "^3.1.4"
+  },
+  "devDependencies": {
+    "@custom-elements-manifest/analyzer": "^0.10.3",
+    "@open-wc/eslint-config": "^12.0.3",
+    "@typescript-eslint/eslint-plugin": "^7.16.0",
+    "@typescript-eslint/parser": "^7.16.0",
+    "@web/dev-server": "^0.4.6",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.7",
+    "prettier": "^3.3.2",
+    "tslib": "^2.6.3",
+    "typescript": "^5.5.3"
+  },
+  "customElements": "custom-elements.json",
+  "eslintConfig": {
+    "parser": "@typescript-eslint/parser",
+    "extends": [
+      "@open-wc",
+      "prettier"
+    ],
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "ignorePatterns": [
+      "node_modules/**/*",
+      "dist/**/*"
+    ],
+    "rules": {
+      "no-unused-vars": "warn",
+      "no-plusplus": "off",
+      "no-bitwise": "off",
+      "no-shadow": "off",
+      "no-console": "off",
+      "prefer-destructuring": "off",
+      "class-methods-use-this": "off",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "import/no-unresolved": "off",
+      "import/extensions": [
+        "error",
+        "always",
+        {
+          "ignorePackages": true
+        }
+      ]
+    }
+  },
+  "prettier": {
+    "singleQuote": true,
+    "arrowParens": "avoid"
+  },
+  "lint-staged": {
+    "*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  }
+}
