@@ -49,8 +49,11 @@
     "prettier": "^3.3.2",
     "react": "^18.3.1",
     "rimraf": "^6.0.1",
-    "tslib": "^2.6.3",
+    "tslib": "^2.7.0",
     "typescript": "^5.5.3"
+  },
+  "peerDependencies": {
+    "tslib": "^2.7.0"
   },
   "customElements": "custom-elements.json",
   "eslintConfig": {
