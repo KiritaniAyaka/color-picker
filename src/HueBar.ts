@@ -1,10 +1,8 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, query, state } from 'lit/decorators.js';
+import { customElement, property, query } from 'lit/decorators.js';
+import { consume } from '@lit/context';
 import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
-
-export interface HueBarUpdateEventDetail {
-  hue: number;
-}
+import { ColorContext, colorContext } from './context/color-context.js';
 
 @customElement('hue-bar')
 export class HueBar extends LitElement {
@@ -28,8 +26,16 @@ export class HueBar extends LitElement {
   @query('canvas.hue-bar')
   private _huePicker!: HTMLCanvasElement;
 
-  @state()
-  private _hue = 0;
+  @consume({ context: colorContext, subscribe: true })
+  @property({ attribute: false })
+  private colorCtx: ColorContext | null = null;
+
+  connectedCallback(): void {
+    super.connectedCallback && super.connectedCallback();
+    if (!this.colorCtx) {
+      throw new Error('Color context is not provided');
+    }
+  }
 
   protected firstUpdated(): void {
     this._draw();
@@ -51,17 +57,11 @@ export class HueBar extends LitElement {
   private indicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
     const { x } = e.detail.percentage;
     const hue = Math.round(x * 360);
-    this._hue = Math.max(0, Math.min(360, hue));
-    this.dispatchEvent(
-      new CustomEvent<HueBarUpdateEventDetail>('update', {
-        bubbles: true,
-        detail: { hue: this._hue },
-      }),
-    );
+    this.colorCtx!.updateHue(Math.max(0, Math.min(360, hue)));
   }
 
   render() {
-    const currentColor = `hsl(${this._hue}, 100%, 50%)`;
+    const currentColor = `hsl(${this.colorCtx!.hue}, 100%, 50%)`;
 
     return html`
       <div class="hue">

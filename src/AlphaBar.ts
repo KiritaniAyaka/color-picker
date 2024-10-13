@@ -1,10 +1,8 @@
 import { css, html, LitElement, PropertyValues } from 'lit';
-import { customElement, property, query, state } from 'lit/decorators.js';
+import { customElement, property, query } from 'lit/decorators.js';
+import { consume } from '@lit/context';
 import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
-
-export interface AlphaBarUpdateEventDetail {
-  alpha: number;
-}
+import { colorContext, ColorContext } from './context/color-context.js';
 
 @customElement('alpha-bar')
 export class AlphaBar extends LitElement {
@@ -30,22 +28,30 @@ export class AlphaBar extends LitElement {
     }
   `;
 
-  @property({ type: Number })
-  hue = 0;
-
-  @state()
-  private _alpha = 1;
+  @consume({ context: colorContext, subscribe: true })
+  @property({ attribute: false })
+  private colorCtx: ColorContext | null = null;
 
   @query('canvas.alpha-bar')
   private _alphaPicker!: HTMLCanvasElement;
+
+  connectedCallback(): void {
+    super.connectedCallback && super.connectedCallback();
+    if (!this.colorCtx) {
+      throw new Error('Color context is not provided');
+    }
+  }
 
   protected firstUpdated(): void {
     this._draw();
   }
 
   protected updated(changedProperties: PropertyValues): void {
-    if (changedProperties.has('hue')) {
-      this._draw();
+    if (changedProperties.has('colorCtx')) {
+      const c = changedProperties.get('colorCtx') as ColorContext;
+      if (c && c.hue !== this.colorCtx!.hue) {
+        this._draw();
+      }
     }
   }
 
@@ -66,24 +72,19 @@ export class AlphaBar extends LitElement {
     }
 
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    gradient.addColorStop(0, `hsl(${this.hue}, 100%, 50%, 1)`);
-    gradient.addColorStop(1, `hsl(${this.hue}, 100%, 50%, 0)`);
+    gradient.addColorStop(0, `hsl(${this.colorCtx!.hue}, 100%, 50%, 1)`);
+    gradient.addColorStop(1, `hsl(${this.colorCtx!.hue}, 100%, 50%, 0)`);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   private indicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
     const { x } = e.detail.percentage;
-    this._alpha = Math.max(0, Math.min(1, 1 - x));
-    this.dispatchEvent(
-      new CustomEvent<AlphaBarUpdateEventDetail>('update', {
-        detail: { alpha: this._alpha },
-      }),
-    );
+    this.colorCtx!.updateAlpha(Math.max(0, Math.min(1, 1 - x)));
   }
 
   render() {
-    const currentColor = `hsl(${this.hue}, 100%, 50%, ${this._alpha})`;
+    const currentColor = `hsl(${this.colorCtx!.hue}, 100%, 50%, ${this.colorCtx!.alpha})`;
 
     return html`
       <div class="alpha">

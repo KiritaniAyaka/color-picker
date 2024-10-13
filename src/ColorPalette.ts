@@ -1,13 +1,9 @@
 import { css, html, LitElement, PropertyValues } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
-import colorsea from 'colorsea';
+import { consume } from '@lit/context';
 import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
-
-const c = colorsea as unknown as typeof colorsea.default;
-
-export interface ColorPaletteUpdateEventDetail {
-  color: string;
-}
+import { color } from './color.js';
+import { colorContext, ColorContext } from './context/color-context.js';
 
 @customElement('color-palette')
 export class ColorPalette extends LitElement {
@@ -31,14 +27,19 @@ export class ColorPalette extends LitElement {
     }
   `;
 
-  @property({ type: Number })
-  hue = 0;
-
-  @state()
-  private _currentColor = '#f00';
+  @consume({ context: colorContext, subscribe: true })
+  @property({ attribute: false })
+  private colorCtx: ColorContext | null = null;
 
   @state()
   private _percentagePosition = { x: 0, y: 0 };
+
+  connectedCallback(): void {
+    super.connectedCallback && super.connectedCallback();
+    if (!this.colorCtx) {
+      throw new Error('Color context is not provided');
+    }
+  }
 
   protected firstUpdated(): void {
     this._draw();
@@ -46,9 +47,12 @@ export class ColorPalette extends LitElement {
   }
 
   protected updated(changedProperties: PropertyValues): void {
-    if (changedProperties.has('hue')) {
-      this._draw();
-      this._drawIndicator();
+    if (changedProperties.has('colorCtx')) {
+      const c = changedProperties.get('colorCtx') as ColorContext;
+      if (c && this.colorCtx!.hue !== c.hue) {
+        this._draw();
+        this._drawIndicator();
+      }
     }
   }
 
@@ -68,7 +72,7 @@ export class ColorPalette extends LitElement {
       for (let i = 0; i <= 100; i++) {
         saturationGradient.addColorStop(
           i / 100,
-          `hsl(${this.hue}, ${i}%, ${lightness}%)`,
+          `hsl(${this.colorCtx!.hue}, ${i}%, ${lightness}%)`,
         );
       }
       ctx.fillStyle = saturationGradient;
@@ -81,8 +85,8 @@ export class ColorPalette extends LitElement {
       this.renderRoot.querySelector('canvas.color-panel')!;
     const ctx = canvas.getContext('2d')!;
     const gradientHue = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    gradientHue.addColorStop(0, `hsl(${this.hue} 100% 50% / 0)`);
-    gradientHue.addColorStop(1, `hsl(${this.hue} 100% 50% / 1)`);
+    gradientHue.addColorStop(0, `hsl(${this.colorCtx!.hue} 100% 50% / 0)`);
+    gradientHue.addColorStop(1, `hsl(${this.colorCtx!.hue} 100% 50% / 1)`);
     const gradientGray = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradientGray.addColorStop(0, 'rgba(0, 0, 0, 0)');
     gradientGray.addColorStop(1, 'rgba(0, 0, 0, 1)');
@@ -96,12 +100,8 @@ export class ColorPalette extends LitElement {
 
   private _drawIndicator() {
     const { x, y } = this._percentagePosition;
-    this._currentColor = c.hsv(this.hue, x * 100, (1 - y) * 100).hex();
-
-    this.dispatchEvent(
-      new CustomEvent<ColorPaletteUpdateEventDetail>('update', {
-        detail: { color: this._currentColor },
-      }),
+    this.colorCtx!.updateColor(
+      color.hsv(this.colorCtx!.hue, x * 100, (1 - y) * 100).hex(),
     );
   }
 
@@ -116,7 +116,7 @@ export class ColorPalette extends LitElement {
         <canvas width="240" height="240" class="color-panel"></canvas>
         <color-indicator
           @update="${this.indicatorUpdate}"
-          color="${this._currentColor}"
+          color="${this.colorCtx!.color}"
           class="indicator"
         ></color-indicator>
       </div>
