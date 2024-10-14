@@ -1,7 +1,10 @@
 import { css, html, LitElement, PropertyValues } from 'lit';
-import { customElement, property, state } from 'lit/decorators.js';
+import { customElement, property, query, state } from 'lit/decorators.js';
 import { consume } from '@lit/context';
-import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
+import {
+  ColorIndicator,
+  ColorIndicatorUpdateEventDetail,
+} from './ColorIndicator.js';
 import { color } from './color.js';
 import { colorContext, ColorContext } from './context/color-context.js';
 
@@ -27,12 +30,18 @@ export class ColorPalette extends LitElement {
     }
   `;
 
+  @query('.indicator')
+  private _indicator!: ColorIndicator;
+
   @consume({ context: colorContext, subscribe: true })
   @property({ attribute: false })
   private colorCtx: ColorContext | null = null;
 
   @state()
-  private _percentagePosition = { x: 0, y: 0 };
+  private _indicatorPosition = { x: 0, y: 0 };
+
+  // This component doesn't have its own color state,
+  // because its indicator color is consistent with the color context.
 
   connectedCallback(): void {
     super.connectedCallback && super.connectedCallback();
@@ -99,14 +108,21 @@ export class ColorPalette extends LitElement {
   }
 
   private _drawIndicator() {
-    const { x, y } = this._percentagePosition;
+    const { x, y } = this._indicatorPosition;
+    const rect = this._indicator.getBoundingClientRect();
     this.colorCtx!.updateColor(
-      color.hsv(this.colorCtx!.hue, x * 100, (1 - y) * 100).hex(),
+      color
+        .hsv(
+          this.colorCtx!.hue,
+          (x / rect.width) * 100,
+          (1 - y / rect.height) * 100,
+        )
+        .hex(),
     );
   }
 
   private indicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
-    this._percentagePosition = { ...e.detail.percentage };
+    this._indicatorPosition = { ...e.detail.position };
     this._drawIndicator();
   }
 
@@ -117,6 +133,7 @@ export class ColorPalette extends LitElement {
         <color-indicator
           @update="${this.indicatorUpdate}"
           color="${this.colorCtx!.color}"
+          .position="${this._indicatorPosition}"
           class="indicator"
         ></color-indicator>
       </div>

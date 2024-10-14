@@ -1,7 +1,10 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
+import { customElement, property, query, state } from 'lit/decorators.js';
 import { consume } from '@lit/context';
-import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
+import {
+  ColorIndicator,
+  ColorIndicatorUpdateEventDetail,
+} from './ColorIndicator.js';
 import { ColorContext, colorContext } from './context/color-context.js';
 
 @customElement('hue-bar')
@@ -26,9 +29,21 @@ export class HueBar extends LitElement {
   @query('canvas.hue-bar')
   private _huePicker!: HTMLCanvasElement;
 
+  @query('color-indicator')
+  private _indicator!: ColorIndicator;
+
   @consume({ context: colorContext, subscribe: true })
   @property({ attribute: false })
   private colorCtx: ColorContext | null = null;
+
+  /**
+   * Distinguish this state from the color context hue value.
+   * This state only for calculating the color of indicator, not the whole picker hue value.
+   *
+   * The reason it exists is the indicator color possibly different from the picker.
+   */
+  @state()
+  private _hue = 0;
 
   connectedCallback(): void {
     super.connectedCallback && super.connectedCallback();
@@ -54,21 +69,29 @@ export class HueBar extends LitElement {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  private indicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
+  private onIndicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
     const { x } = e.detail.percentage;
     const hue = Math.round(x * 360);
+    this._hue = hue;
     this.colorCtx!.updateHue(Math.max(0, Math.min(360, hue)));
   }
 
   render() {
-    const currentColor = `hsl(${this.colorCtx!.hue}, 100%, 50%)`;
+    const currentColor = `hsl(${this._hue}, 100%, 50%)`;
+    const position = { x: 0, y: 6 };
+    if (this._indicator) {
+      const { width, height } = this._indicator.getBoundingClientRect();
+      position.x = (this._hue / 360) * width;
+      position.y = height / 2;
+    }
 
     return html`
       <div class="hue">
         <canvas width="240" height="12" class="hue-bar"></canvas>
         <color-indicator
-          @update="${this.indicatorUpdate}"
+          @update="${this.onIndicatorUpdate}"
           color="${currentColor}"
+          .position="${position}"
           direction="horizontal"
           class="indicator"
         ></color-indicator>

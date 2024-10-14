@@ -1,7 +1,10 @@
 import { css, html, LitElement, PropertyValues } from 'lit';
-import { customElement, property, query } from 'lit/decorators.js';
+import { customElement, property, query, state } from 'lit/decorators.js';
 import { consume } from '@lit/context';
-import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
+import {
+  ColorIndicator,
+  ColorIndicatorUpdateEventDetail,
+} from './ColorIndicator.js';
 import { colorContext, ColorContext } from './context/color-context.js';
 
 @customElement('alpha-bar')
@@ -34,6 +37,18 @@ export class AlphaBar extends LitElement {
 
   @query('canvas.alpha-bar')
   private _alphaPicker!: HTMLCanvasElement;
+
+  @query('.indicator')
+  private _indicator!: ColorIndicator;
+
+  /**
+   * Distinguish this state from the color context alpha value.
+   * This state only for calculating the color of indicator, not the whole picker alpha value.
+   *
+   * The reason it exists is the indicator color possibly different from the picker.
+   */
+  @state()
+  private _alpha = 0;
 
   connectedCallback(): void {
     super.connectedCallback && super.connectedCallback();
@@ -80,11 +95,19 @@ export class AlphaBar extends LitElement {
 
   private indicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
     const { x } = e.detail.percentage;
-    this.colorCtx!.updateAlpha(Math.max(0, Math.min(1, 1 - x)));
+    const alpha = Math.max(0, Math.min(1, 1 - x));
+    this._alpha = alpha;
+    this.colorCtx!.updateAlpha(alpha);
   }
 
   render() {
-    const currentColor = `hsl(${this.colorCtx!.hue}, 100%, 50%, ${this.colorCtx!.alpha})`;
+    const currentColor = `hsl(${this.colorCtx!.hue}, 100%, 50%, ${this._alpha})`;
+    const position = { x: 0, y: 6 };
+    if (this._indicator) {
+      const { width, height } = this._indicator.getBoundingClientRect();
+      position.x = (1 - this._alpha) * width;
+      position.y = height / 2;
+    }
 
     return html`
       <div class="alpha">
@@ -92,6 +115,7 @@ export class AlphaBar extends LitElement {
         <color-indicator
           @update="${this.indicatorUpdate}"
           color="${currentColor}"
+          .position="${position}"
           direction="horizontal"
           class="indicator"
         ></color-indicator>

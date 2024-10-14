@@ -53,6 +53,9 @@ export class ColorIndicator extends LitElement {
   @property({ type: String })
   color = '#000';
 
+  @property({ attribute: false })
+  position = { x: 0, y: 0 };
+
   @state()
   private _style = {};
 
@@ -66,12 +69,31 @@ export class ColorIndicator extends LitElement {
     this.updatePosition(0, 0);
   }
 
+  private _restricPosition(position: { x: number; y: number }) {
+    // calculating new position
+    const areaRect = this.getBoundingClientRect();
+    const newPosition = {
+      x: Math.max(0, Math.min(areaRect.width, position.x)),
+      y: Math.max(0, Math.min(areaRect.height, position.y)),
+    };
+    // limit according to the direction
+    if (this.direction === 'horizontal') {
+      newPosition.y = this.offsetHeight / 2;
+    } else if (this.direction === 'vertical') {
+      newPosition.x = this.offsetWidth / 2;
+    }
+    return newPosition;
+  }
+
   protected willUpdate(changedProperties: PropertyValues): void {
     if (changedProperties.has('color')) {
       this._style = {
         ...this._style,
         background: `linear-gradient(to left, ${this.color}, ${this.color}), white`,
       };
+    }
+    if (changedProperties.has('position')) {
+      this.applyPosition(this._restricPosition(this.position));
     }
     if (
       changedProperties.has('direction') &&
@@ -124,24 +146,11 @@ export class ColorIndicator extends LitElement {
     this.updatePosition(e.offsetX, e.offsetY);
   }
 
-  private updatePosition(offsetX: number, offsetY: number) {
-    const areaRect = this.getBoundingClientRect();
-    const newPosition = {
-      x: Math.max(0, Math.min(areaRect.width, offsetX)),
-      y: Math.max(0, Math.min(areaRect.height, offsetY)),
-    };
-    // limit according to the direction
-    if (this.direction === 'horizontal') {
-      newPosition.y = this.offsetHeight / 2;
-    } else if (this.direction === 'vertical') {
-      newPosition.x = this.offsetWidth / 2;
-    }
+  private updatePosition(x: number, y: number) {
+    const newPosition = this._restricPosition({ x, y });
 
-    this._style = {
-      ...this._style,
-      left: `${newPosition.x}px`,
-      top: `${newPosition.y}px`,
-    };
+    this.position = newPosition;
+    this.applyPosition(newPosition);
 
     this.dispatchEvent(
       new CustomEvent<ColorIndicatorUpdateEventDetail>('update', {
@@ -155,6 +164,14 @@ export class ColorIndicator extends LitElement {
         },
       }),
     );
+  }
+
+  private applyPosition(position: { x: number; y: number }) {
+    this._style = {
+      ...this._style,
+      left: `${position.x}px`,
+      top: `${position.y}px`,
+    };
   }
 
   protected render() {
