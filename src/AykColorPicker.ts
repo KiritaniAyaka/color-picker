@@ -1,13 +1,13 @@
 import { html, css, LitElement } from 'lit';
 import { property, state } from 'lit/decorators.js';
+import { signal, SignalWatcher } from '@lit-labs/signals';
+import { reaction } from 'signal-utils/subtle/reaction';
 
 import './ColorIndicator.js';
 import './ColorPalette.js';
 import './HueBar.js';
 import './AlphaBar.js';
 
-import type { HueBarUpdateEventDetail } from './HueBar.js';
-import type { AlphaBarUpdateEventDetail } from './AlphaBar.js';
 import type { ColorPaletteUpdateEventDetail } from './ColorPalette.js';
 
 export interface ColorPickerUpdateEventDetail {
@@ -16,7 +16,7 @@ export interface ColorPickerUpdateEventDetail {
   color: string;
 }
 
-export class AykColorPicker extends LitElement {
+export class AykColorPicker extends SignalWatcher(LitElement) {
   static styles = css`
     :host {
       position: relative;
@@ -30,31 +30,30 @@ export class AykColorPicker extends LitElement {
   @property({ type: String })
   model = 'RGB';
 
-  @state()
-  private _hue = 0;
+  private _hue = signal(0);
 
-  @state()
-  private _alpha = 1;
+  private _alpha = signal(1);
 
   @state()
   private _color = '#f00';
 
-  private _dispatchUpdate() {
-    this.dispatchEvent(
-      new CustomEvent<ColorPickerUpdateEventDetail>('update', {
-        detail: { hue: this._hue, alpha: this._alpha, color: this._color },
-      }),
+  protected firstUpdated(): void {
+    reaction(
+      () => [this._hue.get(), this._alpha.get()],
+      () => this._dispatchUpdate(),
     );
   }
 
-  private _hueUpdate(e: CustomEvent<HueBarUpdateEventDetail>) {
-    this._hue = e.detail.hue;
-    this._dispatchUpdate();
-  }
-
-  private _alphaUpdate(e: CustomEvent<AlphaBarUpdateEventDetail>) {
-    this._alpha = e.detail.alpha;
-    this._dispatchUpdate();
+  private _dispatchUpdate() {
+    this.dispatchEvent(
+      new CustomEvent<ColorPickerUpdateEventDetail>('update', {
+        detail: {
+          hue: this._hue.get(),
+          alpha: this._alpha.get(),
+          color: this._color,
+        },
+      }),
+    );
   }
 
   private _colorUpdate(e: CustomEvent<ColorPaletteUpdateEventDetail>) {
@@ -66,10 +65,10 @@ export class AykColorPicker extends LitElement {
     return html`
       <color-palette
         @update="${this._colorUpdate}"
-        hue="${this._hue}"
+        .hue="${this._hue}"
       ></color-palette>
-      <hue-bar @update="${this._hueUpdate}"></hue-bar>
-      <alpha-bar @update="${this._alphaUpdate}" hue="${this._hue}"></alpha-bar>
+      <hue-bar .hue="${this._hue}"></hue-bar>
+      <alpha-bar .alpha="${this._alpha}" .hue="${this._hue}"></alpha-bar>
     `;
   }
 }

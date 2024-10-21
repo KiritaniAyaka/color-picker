@@ -1,6 +1,8 @@
-import { css, html, LitElement, PropertyValues } from 'lit';
+import { css, html, LitElement } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import colorsea from 'colorsea';
+import { Signal, signal, SignalWatcher } from '@lit-labs/signals';
+import { reaction } from 'signal-utils/subtle/reaction';
 import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
 
 const c = colorsea as unknown as typeof colorsea.default;
@@ -10,7 +12,7 @@ export interface ColorPaletteUpdateEventDetail {
 }
 
 @customElement('color-palette')
-export class ColorPalette extends LitElement {
+export class ColorPalette extends SignalWatcher(LitElement) {
   static styles = css`
     :host {
       user-select: none;
@@ -31,25 +33,32 @@ export class ColorPalette extends LitElement {
     }
   `;
 
-  @property({ type: Number })
-  hue = 0;
+  @property({ attribute: false })
+  hue!: Signal.State<number>;
 
+  /**
+   * Currently selected color, also the color of indicator.
+   */
   @state()
   private _currentColor = '#f00';
 
-  @state()
-  private _percentagePosition = { x: 0, y: 0 };
+  private _percentagePosition = signal({ x: 0, y: 0 });
 
   protected firstUpdated(): void {
-    this._draw();
-    this._drawIndicator();
+    reaction(
+      () => this.hue.get(),
+      () => this._redraw(),
+    );
+    reaction(
+      () => this._percentagePosition.get(),
+      () => this._drawIndicator(),
+    );
+    this._redraw();
   }
 
-  protected updated(changedProperties: PropertyValues): void {
-    if (changedProperties.has('hue')) {
-      this._draw();
-      this._drawIndicator();
-    }
+  private _redraw() {
+    this._draw();
+    this._drawIndicator();
   }
 
   private _drawHSL() {
@@ -68,7 +77,7 @@ export class ColorPalette extends LitElement {
       for (let i = 0; i <= 100; i++) {
         saturationGradient.addColorStop(
           i / 100,
-          `hsl(${this.hue}, ${i}%, ${lightness}%)`,
+          `hsl(${this.hue.get()}, ${i}%, ${lightness}%)`,
         );
       }
       ctx.fillStyle = saturationGradient;
@@ -81,8 +90,8 @@ export class ColorPalette extends LitElement {
       this.renderRoot.querySelector('canvas.color-panel')!;
     const ctx = canvas.getContext('2d')!;
     const gradientHue = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    gradientHue.addColorStop(0, `hsl(${this.hue} 100% 50% / 0)`);
-    gradientHue.addColorStop(1, `hsl(${this.hue} 100% 50% / 1)`);
+    gradientHue.addColorStop(0, `hsl(${this.hue.get()} 100% 50% / 0)`);
+    gradientHue.addColorStop(1, `hsl(${this.hue.get()} 100% 50% / 1)`);
     const gradientGray = ctx.createLinearGradient(0, 0, 0, canvas.height);
     gradientGray.addColorStop(0, 'rgba(0, 0, 0, 0)');
     gradientGray.addColorStop(1, 'rgba(0, 0, 0, 1)');
@@ -95,8 +104,10 @@ export class ColorPalette extends LitElement {
   }
 
   private _drawIndicator() {
-    const { x, y } = this._percentagePosition;
-    this._currentColor = c.hsv(this.hue, x * 100, (1 - y) * 100).hex();
+    const { x, y } = this._percentagePosition.get();
+    this._currentColor = c
+      .hsv(this.hue.get() ?? 0, x * 100, (1 - y) * 100)
+      .hex();
 
     this.dispatchEvent(
       new CustomEvent<ColorPaletteUpdateEventDetail>('update', {
@@ -106,8 +117,10 @@ export class ColorPalette extends LitElement {
   }
 
   private indicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
-    this._percentagePosition = { ...e.detail.percentage };
-    this._drawIndicator();
+    this._percentagePosition.set({
+      x: e.detail.percentage.x,
+      y: e.detail.percentage.y,
+    });
   }
 
   render() {

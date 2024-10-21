@@ -1,13 +1,10 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, query, state } from 'lit/decorators.js';
+import { customElement, property, query } from 'lit/decorators.js';
+import { Signal, SignalWatcher, watch } from '@lit-labs/signals';
 import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
 
-export interface HueBarUpdateEventDetail {
-  hue: number;
-}
-
 @customElement('hue-bar')
-export class HueBar extends LitElement {
+export class HueBar extends SignalWatcher(LitElement) {
   static styles = css`
     .hue {
       border-radius: 50%;
@@ -25,11 +22,11 @@ export class HueBar extends LitElement {
     }
   `;
 
+  @property({ attribute: false })
+  hue!: Signal.State<number>;
+
   @query('canvas.hue-bar')
   private _huePicker!: HTMLCanvasElement;
-
-  @state()
-  private _hue = 0;
 
   protected firstUpdated(): void {
     this._draw();
@@ -50,25 +47,16 @@ export class HueBar extends LitElement {
 
   private onIndicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
     const { x } = e.detail.percentage;
-    const hue = Math.round(x * 360);
-    this._hue = Math.max(0, Math.min(360, hue));
-    this.dispatchEvent(
-      new CustomEvent<HueBarUpdateEventDetail>('update', {
-        bubbles: true,
-        detail: { hue: this._hue },
-      }),
-    );
+    this.hue.set(Math.max(0, Math.min(360, Math.round(x * 360))));
   }
 
   render() {
-    const currentColor = `hsl(${this._hue}, 100%, 50%)`;
-
     return html`
       <div class="hue">
         <canvas width="240" height="12" class="hue-bar"></canvas>
         <color-indicator
           @update="${this.onIndicatorUpdate}"
-          color="${currentColor}"
+          color="hsl(${watch(this.hue)}, 100%, 50%)"
           direction="horizontal"
           class="indicator"
         ></color-indicator>
