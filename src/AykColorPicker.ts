@@ -1,13 +1,14 @@
-import { html, css, LitElement, PropertyValues } from 'lit';
-import { property } from 'lit/decorators.js';
-import { provide } from '@lit/context';
+import { html, css, LitElement } from 'lit';
+import { property, state } from 'lit/decorators.js';
 
 import './ColorIndicator.js';
 import './ColorPalette.js';
 import './HueBar.js';
 import './AlphaBar.js';
 
-import { colorContext, ColorContext } from './context/color-context.js';
+import type { HueBarUpdateEventDetail } from './HueBar.js';
+import type { AlphaBarUpdateEventDetail } from './AlphaBar.js';
+import type { ColorPaletteUpdateEventDetail } from './ColorPalette.js';
 
 export interface ColorPickerUpdateEventDetail {
   hue: number;
@@ -26,42 +27,49 @@ export class AykColorPicker extends LitElement {
     }
   `;
 
-  @provide({ context: colorContext })
-  @property({ attribute: false })
-  colorCtx: ColorContext = {
-    hue: 0,
-    alpha: 1,
-    color: '#f00',
-    updateHue: hue => {
-      this.colorCtx = { ...this.colorCtx, hue };
-    },
-    updateAlpha: alpha => {
-      this.colorCtx = { ...this.colorCtx, alpha };
-    },
-    updateColor: color => {
-      this.colorCtx = { ...this.colorCtx, color };
-    },
-  };
+  @property({ type: String })
+  model = 'RGB';
 
-  protected willUpdate(changedProperties: PropertyValues): void {
-    if (changedProperties.has('colorCtx')) {
-      this.dispatchEvent(
-        new CustomEvent<ColorPickerUpdateEventDetail>('update', {
-          detail: {
-            hue: this.colorCtx.hue,
-            alpha: this.colorCtx.alpha,
-            color: this.colorCtx.color,
-          },
-        }),
-      );
-    }
+  @state()
+  private _hue = 0;
+
+  @state()
+  private _alpha = 1;
+
+  @state()
+  private _color = '#f00';
+
+  private _dispatchUpdate() {
+    this.dispatchEvent(
+      new CustomEvent<ColorPickerUpdateEventDetail>('update', {
+        detail: { hue: this._hue, alpha: this._alpha, color: this._color },
+      }),
+    );
+  }
+
+  private _hueUpdate(e: CustomEvent<HueBarUpdateEventDetail>) {
+    this._hue = e.detail.hue;
+    this._dispatchUpdate();
+  }
+
+  private _alphaUpdate(e: CustomEvent<AlphaBarUpdateEventDetail>) {
+    this._alpha = e.detail.alpha;
+    this._dispatchUpdate();
+  }
+
+  private _colorUpdate(e: CustomEvent<ColorPaletteUpdateEventDetail>) {
+    this._color = e.detail.color;
+    this._dispatchUpdate();
   }
 
   render() {
     return html`
-      <color-palette></color-palette>
-      <hue-bar></hue-bar>
-      <alpha-bar></alpha-bar>
+      <color-palette
+        @update="${this._colorUpdate}"
+        hue="${this._hue}"
+      ></color-palette>
+      <hue-bar @update="${this._hueUpdate}"></hue-bar>
+      <alpha-bar @update="${this._alphaUpdate}" hue="${this._hue}"></alpha-bar>
     `;
   }
 }

@@ -1,11 +1,10 @@
 import { css, html, LitElement } from 'lit';
-import { customElement, property, query, state } from 'lit/decorators.js';
-import { consume } from '@lit/context';
-import {
-  ColorIndicator,
-  ColorIndicatorUpdateEventDetail,
-} from './ColorIndicator.js';
-import { ColorContext, colorContext } from './context/color-context.js';
+import { customElement, query, state } from 'lit/decorators.js';
+import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
+
+export interface HueBarUpdateEventDetail {
+  hue: number;
+}
 
 @customElement('hue-bar')
 export class HueBar extends LitElement {
@@ -29,28 +28,8 @@ export class HueBar extends LitElement {
   @query('canvas.hue-bar')
   private _huePicker!: HTMLCanvasElement;
 
-  @query('color-indicator')
-  private _indicator!: ColorIndicator;
-
-  @consume({ context: colorContext, subscribe: true })
-  @property({ attribute: false })
-  private colorCtx: ColorContext | null = null;
-
-  /**
-   * Distinguish this state from the color context hue value.
-   * This state only for calculating the color of indicator, not the whole picker hue value.
-   *
-   * The reason it exists is the indicator color possibly different from the picker.
-   */
   @state()
   private _hue = 0;
-
-  connectedCallback(): void {
-    super.connectedCallback && super.connectedCallback();
-    if (!this.colorCtx) {
-      throw new Error('Color context is not provided');
-    }
-  }
 
   protected firstUpdated(): void {
     this._draw();
@@ -72,18 +51,17 @@ export class HueBar extends LitElement {
   private onIndicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
     const { x } = e.detail.percentage;
     const hue = Math.round(x * 360);
-    this._hue = hue;
-    this.colorCtx!.updateHue(Math.max(0, Math.min(360, hue)));
+    this._hue = Math.max(0, Math.min(360, hue));
+    this.dispatchEvent(
+      new CustomEvent<HueBarUpdateEventDetail>('update', {
+        bubbles: true,
+        detail: { hue: this._hue },
+      }),
+    );
   }
 
   render() {
     const currentColor = `hsl(${this._hue}, 100%, 50%)`;
-    const position = { x: 0, y: 6 };
-    if (this._indicator) {
-      const { width, height } = this._indicator.getBoundingClientRect();
-      position.x = (this._hue / 360) * width;
-      position.y = height / 2;
-    }
 
     return html`
       <div class="hue">
@@ -91,7 +69,6 @@ export class HueBar extends LitElement {
         <color-indicator
           @update="${this.onIndicatorUpdate}"
           color="${currentColor}"
-          .position="${position}"
           direction="horizontal"
           class="indicator"
         ></color-indicator>

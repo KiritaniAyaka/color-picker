@@ -1,11 +1,10 @@
 import { css, html, LitElement, PropertyValues } from 'lit';
 import { customElement, property, query, state } from 'lit/decorators.js';
-import { consume } from '@lit/context';
-import {
-  ColorIndicator,
-  ColorIndicatorUpdateEventDetail,
-} from './ColorIndicator.js';
-import { colorContext, ColorContext } from './context/color-context.js';
+import { ColorIndicatorUpdateEventDetail } from './ColorIndicator.js';
+
+export interface AlphaBarUpdateEventDetail {
+  alpha: number;
+}
 
 @customElement('alpha-bar')
 export class AlphaBar extends LitElement {
@@ -31,42 +30,22 @@ export class AlphaBar extends LitElement {
     }
   `;
 
-  @consume({ context: colorContext, subscribe: true })
-  @property({ attribute: false })
-  private colorCtx: ColorContext | null = null;
+  @property({ type: Number })
+  hue = 0;
+
+  @state()
+  private _alpha = 1;
 
   @query('canvas.alpha-bar')
   private _alphaPicker!: HTMLCanvasElement;
-
-  @query('.indicator')
-  private _indicator!: ColorIndicator;
-
-  /**
-   * Distinguish this state from the color context alpha value.
-   * This state only for calculating the color of indicator, not the whole picker alpha value.
-   *
-   * The reason it exists is the indicator color possibly different from the picker.
-   */
-  @state()
-  private _alpha = 0;
-
-  connectedCallback(): void {
-    super.connectedCallback && super.connectedCallback();
-    if (!this.colorCtx) {
-      throw new Error('Color context is not provided');
-    }
-  }
 
   protected firstUpdated(): void {
     this._draw();
   }
 
   protected updated(changedProperties: PropertyValues): void {
-    if (changedProperties.has('colorCtx')) {
-      const c = changedProperties.get('colorCtx') as ColorContext;
-      if (c && c.hue !== this.colorCtx!.hue) {
-        this._draw();
-      }
+    if (changedProperties.has('hue')) {
+      this._draw();
     }
   }
 
@@ -87,27 +66,24 @@ export class AlphaBar extends LitElement {
     }
 
     const gradient = ctx.createLinearGradient(0, 0, canvas.width, 0);
-    gradient.addColorStop(0, `hsl(${this.colorCtx!.hue}, 100%, 50%, 1)`);
-    gradient.addColorStop(1, `hsl(${this.colorCtx!.hue}, 100%, 50%, 0)`);
+    gradient.addColorStop(0, `hsl(${this.hue}, 100%, 50%, 1)`);
+    gradient.addColorStop(1, `hsl(${this.hue}, 100%, 50%, 0)`);
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
   private indicatorUpdate(e: CustomEvent<ColorIndicatorUpdateEventDetail>) {
     const { x } = e.detail.percentage;
-    const alpha = Math.max(0, Math.min(1, 1 - x));
-    this._alpha = alpha;
-    this.colorCtx!.updateAlpha(alpha);
+    this._alpha = Math.max(0, Math.min(1, 1 - x));
+    this.dispatchEvent(
+      new CustomEvent<AlphaBarUpdateEventDetail>('update', {
+        detail: { alpha: this._alpha },
+      }),
+    );
   }
 
   render() {
-    const currentColor = `hsl(${this.colorCtx!.hue}, 100%, 50%, ${this._alpha})`;
-    const position = { x: 0, y: 6 };
-    if (this._indicator) {
-      const { width, height } = this._indicator.getBoundingClientRect();
-      position.x = (1 - this._alpha) * width;
-      position.y = height / 2;
-    }
+    const currentColor = `hsl(${this.hue}, 100%, 50%, ${this._alpha})`;
 
     return html`
       <div class="alpha">
@@ -115,7 +91,6 @@ export class AlphaBar extends LitElement {
         <color-indicator
           @update="${this.indicatorUpdate}"
           color="${currentColor}"
-          .position="${position}"
           direction="horizontal"
           class="indicator"
         ></color-indicator>
