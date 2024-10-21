@@ -1,4 +1,4 @@
-import { html, css, LitElement } from 'lit';
+import { html, css, LitElement, PropertyValues } from 'lit';
 import { property, state } from 'lit/decorators.js';
 import { signal, SignalWatcher } from '@lit-labs/signals';
 import { reaction } from 'signal-utils/subtle/reaction';
@@ -37,6 +37,20 @@ export class AykColorPicker extends SignalWatcher(LitElement) {
   @state()
   private _color = '#f00';
 
+  @property({ type: String })
+  colorSpace = 'HSB';
+
+  space = signal('HSB');
+
+  protected willUpdate(_changedProperties: PropertyValues): void {
+    if (_changedProperties.has('colorSpace')) {
+      if (this.colorSpace !== 'HSB' && this.colorSpace !== 'HSL') {
+        throw new Error('Invalid color space');
+      }
+      this.space.set(this.colorSpace);
+    }
+  }
+
   protected firstUpdated(): void {
     reaction(
       () => [this._hue.get(), this._alpha.get()],
@@ -65,6 +79,7 @@ export class AykColorPicker extends SignalWatcher(LitElement) {
     return html`
       <color-palette
         @update="${this._colorUpdate}"
+        .space="${this.space}"
         .hue="${this._hue}"
       ></color-palette>
       <hue-bar .hue="${this._hue}"></hue-bar>

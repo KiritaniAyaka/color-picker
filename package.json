@@ -29,6 +29,7 @@
     "custom-elements.json"
   ],
   "dependencies": {
+    "@kiritaniayaka/surprise": "npm:@jsr/kiritaniayaka__surprise@^0.2.2",
     "@lit-labs/signals": "^0.1.1",
     "@lit/react": "^1.0.6",
     "colorsea": "^1.2.2",
@@ -77,6 +78,7 @@
       "no-bitwise": "off",
       "no-shadow": "off",
       "no-console": "off",
+      "no-unused-expressions": "off",
       "prefer-destructuring": "off",
       "class-methods-use-this": "off",
       "@typescript-eslint/no-unused-vars": "warn",

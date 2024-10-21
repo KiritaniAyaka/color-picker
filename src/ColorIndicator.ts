@@ -69,6 +69,11 @@ export class ColorIndicator extends LitElement {
     this.updatePosition(0, 0);
   }
 
+  public setPosition(percentage: { x: number; y: number }) {
+    const { width, height } = this.getBoundingClientRect();
+    this.updatePosition(percentage.x * width, percentage.y * height);
+  }
+
   private _restricPosition(position: { x: number; y: number }) {
     // calculating new position
     const areaRect = this.getBoundingClientRect();

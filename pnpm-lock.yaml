@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@kiritaniayaka/surprise':
+        specifier: npm:@jsr/kiritaniayaka__surprise@^0.2.2
+        version: '@jsr/kiritaniayaka__surprise@0.2.2'
       '@lit-labs/signals':
         specifier: ^0.1.1
         version: 0.1.1
@@ -240,6 +243,15 @@ packages:
   '@jsdevtools/ez-spawn@3.0.4':
     resolution: {integrity: sha512-f5DRIOZf7wxogefH03RjMPMdBF7ADTWUMoOs9kaJo06EfwF+aFhMZMDZxHg/Xe12hptN9xoZjGso2fdjapBRIA==}
     engines: {node: '>=10'}
+
+  '@jsr/kiritaniayaka__surprise@0.2.2':
+    resolution: {integrity: sha512-yssnIyLYhojRS/AwMTZfSgDnyE7A34AIBt0Pd7SY1yCzB5oRWm+eaGPjA2FzattcL/kuq2d4WaRzhTEQkZ+rug==, tarball: https://npm.jsr.io/~/11/@jsr/kiritaniayaka__surprise/0.2.2.tgz}
+
+  '@jsr/std__crypto@1.0.3':
+    resolution: {integrity: sha512-B/4PCckQfbfVMyQvG2I15QbN4vfx1S0tXKstpSlzuSmVwGmAOT/DLCtrbrAKlMiJBN4Zb53KaAJQm8VgkZ+bDg==, tarball: https://npm.jsr.io/~/11/@jsr/std__crypto/1.0.3.tgz}
+
+  '@jsr/std__encoding@1.0.5':
+    resolution: {integrity: sha512-blLadT0G3SiwsneatWsUwH5s+Sb+zSsQCgtHZlT+nQkoFci2OiErHx4XqdoFcwuz3IH6wOdPZqjhcSrbNS0jqA==, tarball: https://npm.jsr.io/~/11/@jsr/std__encoding/1.0.5.tgz}
 
   '@lit-labs/signals@0.1.1':
     resolution: {integrity: sha512-QQYp2CyXzxaYho4EHKLLOHLMX0Jz8HWUfGGiCKyei54Vol0DqiPggbA1z3t53oYJ3mqU/NTWF+flfcY7Tfpozg==}
@@ -2667,6 +2679,15 @@ snapshots:
       cross-spawn: 7.0.3
       string-argv: 0.3.2
       type-detect: 4.1.0
+
+  '@jsr/kiritaniayaka__surprise@0.2.2':
+    dependencies:
+      '@jsr/std__crypto': 1.0.3
+      '@jsr/std__encoding': 1.0.5
+
+  '@jsr/std__crypto@1.0.3': {}
+
+  '@jsr/std__encoding@1.0.5': {}
 
   '@lit-labs/signals@0.1.1':
     dependencies:
